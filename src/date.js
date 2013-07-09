@@ -95,7 +95,7 @@ angular.module('ui.date', [])
           return null;
         });
         modelCtrl.$parsers.push(function(value){
-          if (value) {
+          if (angular.isDate(value)) {
             return jQuery.datepicker.formatDate(dateFormat, value);
           }
           return null;
