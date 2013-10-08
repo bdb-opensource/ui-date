@@ -1,10 +1,27 @@
-/*global angular */
+/*global angular, $ */
 /*
  jQuery UI Datepicker plugin wrapper
 
  @note If ≤ IE8 make sure you have a polyfill for Date.toISOString()
  @param [ui-date] {object} Options to pass to $.fn.datepicker() merged onto uiDateConfig
  */
+function tryParseInputFormats(defaultFormat, elementValue, inputDateFormats) {
+    'use strict';
+    var parsedDate = null;
+    
+    if (!$.isArray(inputDateFormats)) {
+        inputDateFormats = [defaultFormat];
+    }
+
+    $.each(inputDateFormats, function (index, format) {
+        try {
+            parsedDate = $.datepicker.parseDate(format, elementValue);
+        } catch (e) {
+            // ignore;
+        }
+    });
+    return parsedDate;
+}
 
 angular.module('ui.date', [])
 
@@ -46,26 +63,20 @@ angular.module('ui.date', [])
           };
             
           element.on('blur', function () {
-              var isValid = true,
-                  parsedDate;
-              if (!controller.$viewValue && element.val()) {
-                  try {
-                      parsedDate = $.datepicker.parseDate(element.datepicker( "option", "dateFormat" ), element.val());
-                  } catch (e) {
-                      isValid = false;
-                  }
-                  if (isValid) {
-                      element.datepicker("setDate", element.val());
-                      parsedDate = element.datepicker("getDate");
-                      if (angular.isDate(parsedDate) && parsedDate) {
-                        _$setViewValue.call(controller, parsedDate);
-                      }
-                      else {
-                        isValid = false;
+              scope.$apply(function () {
+                  var isValid = true,
+                      elementValue = element.val(),
+                      defaultFormat = element.datepicker("option", "dateFormats"),
+                      inputDateFormats = element.datepicker("option", "inputDateFormats"),
+                      parsedDate = tryParseInputFormats(defaultFormat, elementValue, inputDateFormats);
+                  if (!controller.$viewValue && elementValue) {
+                      if (parsedDate) {
+                          element.datepicker("setDate", parsedDate);
+                          _$setViewValue.call(controller, parsedDate);
                       }
                   }
-              }
-              controller.$setValidity(controller.$name, isValid);
+                  controller.$setValidity(controller.$name, !!(parsedDate));
+              });
           });
 
           // Set the view value in a $apply block when users selects
@@ -122,7 +133,7 @@ angular.module('ui.date', [])
         // Use the datepicker with the attribute value as the dateFormat string to convert to and from a string
         modelCtrl.$formatters.push(function(value) {
           if (angular.isString(value) ) {
-            return jQuery.datepicker.parseDate(dateFormat, value);
+            return tryParseInputFormats(dateFormat, value, element.datepicker("option", "inputDateFormats"));
           }
           return null;
         });
