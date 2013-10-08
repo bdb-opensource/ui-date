@@ -5,6 +5,10 @@
  @note If ≤ IE8 make sure you have a polyfill for Date.toISOString()
  @param [ui-date] {object} Options to pass to $.fn.datepicker() merged onto uiDateConfig
  */
+
+/**
+ * Wrapper for $.datepicker.parseDate, that tries using multiple input formats
+ */
 function tryParseInputFormats(defaultFormat, elementValue, inputDateFormats) {
     'use strict';
     var parsedDate = null;
@@ -22,6 +26,18 @@ function tryParseInputFormats(defaultFormat, elementValue, inputDateFormats) {
     });
     return parsedDate;
 }
+
+/** 
+ * wrapper for scope.$apply that avoids the "$apply already in progress" error.
+ * see: http://stackoverflow.com/questions/12729122/prevent-error-digest-already-in-progress-when-calling-scope-apply
+ */
+function safeApply(scope, fn) {
+    if (scope.$$phase || scope.$root.$$phase) {
+        fn();
+        return;
+    }
+    scope.$apply(fn);
+};
 
 angular.module('ui.date', [])
 
@@ -63,7 +79,7 @@ angular.module('ui.date', [])
           };
             
           element.on('blur', function () {
-              scope.$apply(function () {
+              safeApply(scope, function () {
                   var isValid = true,
                       elementValue = element.val(),
                       defaultFormat = element.datepicker("option", "dateFormats"),
