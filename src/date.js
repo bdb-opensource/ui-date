@@ -22,37 +22,69 @@ angular.module('ui.date', [])
         return angular.extend({}, uiDateConfig, scope.$eval(attrs.uiDate));
       };
       var initDateWidget = function () {
-        var showing = false;
         var opts = getOptions();
 
         // If we have a controller (i.e. ngModelController) then wire it up
         if (controller) {
+          // Override ngModelController's $setViewValue
+          // so that we can ensure that a Date object is being pass down the $parsers
+          // This is to handle the case where the user types directly into the input box
+          var _$setViewValue = controller.$setViewValue;
+          var settingValue = false;
+          controller.$setViewValue = function (value) {
+            if ( !settingValue ) {
+              settingValue = true;
+              if (angular.isDate(value)) {
+                element.datepicker("setDate", value);
+                _$setViewValue.call(controller, value);
+              }
+              else {
+                _$setViewValue.call(controller, null);
+              }
+              $timeout(function() {settingValue = false;});
+            }
+          };
+            
+          element.on('blur', function () {
+              var isValid = true,
+                  parsedDate;
+              if (!controller.$viewValue && element.val()) {
+                  try {
+                      parsedDate = $.datepicker.parseDate(element.datepicker( "option", "dateFormat" ), element.val());
+                  } catch (e) {
+                      isValid = false;
+                  }
+                  if (isValid) {
+                      element.datepicker("setDate", element.val());
+                      parsedDate = element.datepicker("getDate");
+                      if (angular.isDate(parsedDate) && parsedDate) {
+                        _$setViewValue.call(controller, parsedDate);
+                      }
+                      else {
+                        isValid = false;
+                      }
+                  }
+              }
+              controller.$setValidity(controller.$name, isValid);
+          });
 
           // Set the view value in a $apply block when users selects
           // (calling directive user's function too if provided)
           var _onSelect = opts.onSelect || angular.noop;
           opts.onSelect = function (value, picker) {
             scope.$apply(function() {
-              showing = true;
               controller.$setViewValue(element.datepicker("getDate"));
               _onSelect(value, picker);
               element.blur();
             });
           };
-          opts.beforeShow = function() {
-            showing = true;
+
+          // Don't show if we are already setting the value in $setViewValue()
+          // (calling directive user's function too if provided)
+          var _beforeShow = opts.beforeShow || angular.noop;
+          opts.beforeShow = function(input, inst) {
+            return !settingValue && _beforeShow(input, inst);
           };
-          opts.onClose = function(value, picker) {
-            showing = false;
-          };
-          element.on('blur', function() {
-            if ( !showing ) {
-              scope.$apply(function() {
-                element.datepicker("setDate", element.datepicker("getDate"));
-                controller.$setViewValue(element.datepicker("getDate"));
-              });
-            }
-          });
 
           // Update the date picker when the model changes
           controller.$render = function () {
