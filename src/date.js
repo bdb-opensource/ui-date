@@ -13,6 +13,11 @@ function tryParseInputFormats(defaultFormat, elementValue, inputDateFormats) {
     'use strict';
     var parsedDate = null;
     
+    if ($.isDate(elementValue)) {
+        // Already a Date.
+        return elementValue;
+    }
+    
     if (!$.isArray(inputDateFormats)) {
         inputDateFormats = [defaultFormat];
     }
@@ -148,10 +153,7 @@ angular.module('ui.date', [])
       if ( dateFormat ) {
         // Use the datepicker with the attribute value as the dateFormat string to convert to and from a string
         modelCtrl.$formatters.push(function(value) {
-          if (angular.isString(value) ) {
-            return tryParseInputFormats(dateFormat, value, element.datepicker("option", "inputDateFormats"));
-          }
-          return null;
+          return tryParseInputFormats(dateFormat, value, element.datepicker("option", "inputDateFormats"));
         });
         modelCtrl.$parsers.push(function(value){
           if (angular.isDate(value)) {
