@@ -14,7 +14,7 @@
     function tryParseInputFormats(defaultFormat, elementValue, inputDateFormats) {
         var parsedDate = null;
 
-        if ($.isDate(elementValue)) {
+        if (angular.isDate(elementValue)) {
             // Already a Date.
             return elementValue;
         }
