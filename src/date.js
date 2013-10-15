@@ -94,13 +94,16 @@
                                         defaultFormat = element.datepicker("option", "dateFormats"),
                                         inputDateFormats = element.datepicker("option", "inputDateFormats"),
                                         parsedDate = tryParseInputFormats(defaultFormat, elementValue, inputDateFormats);
-                                    if (!controller.$viewValue && elementValue) {
-                                        if (parsedDate) {
+                                    if (elementValue) {
+                                        if (!controller.$viewValue && parsedDate) {
                                             element.datepicker("setDate", parsedDate);
                                             _$setViewValue.call(controller, parsedDate);
                                         }
+                                        controller.$setValidity(controller.$name, !!(parsedDate));
                                     }
-                                    controller.$setValidity(controller.$name, !!(parsedDate));
+                                    else {
+                                        controller.$setValidity(controller.$name, true);
+                                    }
                                 });
                             });
 
